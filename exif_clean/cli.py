@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Iterator, Sequence
 
 from . import __version__
 from .jpeg import JpegError, strip_metadata
+
+SUPPORTED_SUFFIXES = {".jpg", ".jpeg"}
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -24,8 +26,29 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--dry-run", action="store_true", help="report what would be removed, write nothing")
     parser.add_argument("--keep-xmp", action="store_true", help="remove EXIF but keep XMP metadata")
+    parser.add_argument(
+        "--recursive",
+        action="store_true",
+        help="treat directory arguments as folders and clean every .jpg/.jpeg inside",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
+
+
+def _iter_inputs(paths: Sequence[Path], recursive: bool) -> Iterator[Path]:
+    for path in paths:
+        if path.is_dir():
+            if not recursive:
+                print(
+                    f"{path}: is a directory (pass --recursive to clean the images inside)",
+                    file=sys.stderr,
+                )
+                continue
+            for child in sorted(path.rglob("*")):
+                if child.is_file() and child.suffix.lower() in SUPPORTED_SUFFIXES:
+                    yield child
+            continue
+        yield path
 
 
 def _target_for(path: Path, in_place: bool) -> Path:
@@ -38,7 +61,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
     cleaned_files = 0
-    for path in args.paths:
+    for path in _iter_inputs(args.paths, args.recursive):
         if not path.is_file():
             print(f"{path}: no such file", file=sys.stderr)
             continue

@@ -20,6 +20,9 @@ exif-clean photo.jpg --dry-run
 
 # Several files at once, replace the originals
 exif-clean *.jpg --in-place
+
+# A whole camera dump, keeping the originals
+exif-clean ~/Pictures/holiday --recursive
 ```
 
 ```text
@@ -32,6 +35,7 @@ holiday.jpg: removed EXIF, XMP (3128 bytes) -> holiday.clean.jpg
 | `--dry-run` | report what would be removed, change nothing |
 | `--in-place` | overwrite the original files instead of writing `*.clean.jpg` |
 | `--keep-xmp` | remove EXIF, keep XMP (useful for edit history) |
+| `--recursive` | treat a folder argument as a folder and clean every `.jpg`/`.jpeg` inside |
 | `--version` | print the version and exit |
 
 The default is deliberately non-destructive: the original stays exactly as it
