@@ -123,6 +123,30 @@ def test_cli_reports_files_without_metadata(workdir: Path, capsys: pytest.Captur
     assert "no metadata found" in capsys.readouterr().out
 
 
+def test_cli_directory_without_recursive_explains(workdir: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    photos = workdir / "photos"
+    photos.mkdir()
+    (photos / "a.jpg").write_bytes(jpeg_with_metadata())
+
+    assert main([str(photos)]) == 0
+    assert "is a directory" in capsys.readouterr().err
+    assert not (photos / "a.clean.jpg").exists()
+
+
+def test_cli_recursive_cleans_nested_images(workdir: Path) -> None:
+    photos = workdir / "photos"
+    nested = photos / "2026"
+    nested.mkdir(parents=True)
+    (photos / "a.jpg").write_bytes(jpeg_with_metadata())
+    (nested / "b.JPG").write_bytes(jpeg_with_metadata())
+    (photos / "notes.txt").write_text("not an image", encoding="utf-8")
+
+    assert main([str(photos), "--recursive"]) == 0
+    assert (photos / "a.clean.jpg").is_file()
+    assert (nested / "b.clean.jpg").is_file()
+    assert not (photos / "notes.clean.jpg").exists()
+
+
 def test_cli_skips_broken_files(workdir: Path, capsys: pytest.CaptureFixture[str]) -> None:
     broken = workdir / "broken.jpg"
     broken.write_bytes(b"not a jpeg")
